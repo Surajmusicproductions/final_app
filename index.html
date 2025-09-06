@@ -58,7 +58,7 @@
     border-radius: 2px;
     z-index: 10;
   }
-  /* New Piano Styles */
+  /* New Piano Styles for two octaves */
   .piano-container {
     position: relative;
     width: 100%;
@@ -72,17 +72,25 @@
     transition: background-color 0.1s ease, transform 0.1s ease, box-shadow 0.1s ease;
   }
   .white-key {
-    width: 12.5%; /* 8 white keys in C to C octave */
+    width: 6.666%; /* 15 white keys in C4-C6 octave range */
     height: 100%;
     background-color: #f0f0f0;
     border: 1px solid #d0d0d0;
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    padding-bottom: 8px;
   }
   .black-key {
-    width: 8%;
+    width: 4%;
     height: 60%;
     background-color: #121212;
     z-index: 10;
     border: 1px solid #333;
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    padding-bottom: 8px;
   }
   .white-key.active {
       background-color: #e0e0e0;
@@ -146,22 +154,8 @@
     
     <!-- Virtual Piano Keyboard -->
     <div id="piano" class="relative flex justify-center select-none bg-gray-900 rounded-xl p-4 shadow-xl border border-gray-700">
-      <div class="piano-container">
-        <!-- White Keys -->
-        <div data-note="C4" class="white-key" style="left:0%"></div>
-        <div data-note="D4" class="white-key" style="left:12.5%"></div>
-        <div data-note="E4" class="white-key" style="left:25%"></div>
-        <div data-note="F4" class="white-key" style="left:37.5%"></div>
-        <div data-note="G4" class="white-key" style="left:50%"></div>
-        <div data-note="A4" class="white-key" style="left:62.5%"></div>
-        <div data-note="B4" class="white-key" style="left:75%"></div>
-        <div data-note="C5" class="white-key" style="left:87.5%"></div>
-        <!-- Black Keys -->
-        <div data-note="C#4" class="black-key" style="left:8.5%;"></div>
-        <div data-note="D#4" class="black-key" style="left:21%;"></div>
-        <div data-note="F#4" class="black-key" style="left:46%;"></div>
-        <div data-note="G#4" class="black-key" style="left:58.5%;"></div>
-        <div data-note="A#4" class="black-key" style="left:71%;"></div>
+      <div class="piano-container" id="piano-container">
+        <!-- Keys will be dynamically generated here -->
       </div>
     </div>
   </div>
@@ -181,6 +175,7 @@
     const waveformCanvas = document.getElementById('waveformCanvas');
     const ctx = waveformCanvas.getContext('2d');
     const piano = document.getElementById('piano');
+    const pianoContainer = document.getElementById('piano-container');
     const startMarker = document.getElementById('startMarker');
     const endMarker = document.getElementById('endMarker');
 
@@ -200,11 +195,42 @@
     sustainSlider.oninput = () => sustainValue.textContent = `${parseFloat(sustainSlider.value).toFixed(2)}`;
     releaseSlider.oninput = () => releaseValue.textContent = `${parseFloat(releaseSlider.value).toFixed(2)}s`;
 
-    // Note mapping: maps a musical note to its semitone offset from A4 (440Hz)
+    // Note mapping for two full octaves (C4 to C6)
     const noteSemitoneOffsets = {
       'C4': -9, 'C#4': -8, 'D4': -7, 'D#4': -6, 'E4': -5, 'F4': -4, 'F#4': -3,
-      'G4': -2, 'G#4': -1, 'A4': 0, 'A#4': 1, 'B4': 2, 'C5': 3, 'C#5': 4
+      'G4': -2, 'G#4': -1, 'A4': 0, 'A#4': 1, 'B4': 2,
+      'C5': 3, 'C#5': 4, 'D5': 5, 'D#5': 6, 'E5': 7, 'F5': 8, 'F#5': 9,
+      'G5': 10, 'G#5': 11, 'A5': 12, 'A#5': 13, 'B5': 14,
+      'C6': 15
     };
+    
+    const noteLayout = [
+      { note: 'C4', type: 'white', position: 0 },
+      { note: 'C#4', type: 'black', position: 3.333 },
+      { note: 'D4', type: 'white', position: 6.666 },
+      { note: 'D#4', type: 'black', position: 10 },
+      { note: 'E4', type: 'white', position: 13.333 },
+      { note: 'F4', type: 'white', position: 20 },
+      { note: 'F#4', type: 'black', position: 23.333 },
+      { note: 'G4', type: 'white', position: 26.666 },
+      { note: 'G#4', type: 'black', position: 30 },
+      { note: 'A4', type: 'white', position: 33.333 },
+      { note: 'A#4', type: 'black', position: 36.666 },
+      { note: 'B4', type: 'white', position: 40 },
+      { note: 'C5', type: 'white', position: 46.666 },
+      { note: 'C#5', type: 'black', position: 50 },
+      { note: 'D5', type: 'white', position: 53.333 },
+      { note: 'D#5', type: 'black', position: 56.666 },
+      { note: 'E5', type: 'white', position: 60 },
+      { note: 'F5', type: 'white', position: 66.666 },
+      { note: 'F#5', type: 'black', position: 70 },
+      { note: 'G5', type: 'white', position: 73.333 },
+      { note: 'G#5', type: 'black', position: 76.666 },
+      { note: 'A5', type: 'white', position: 80 },
+      { note: 'A#5', type: 'black', position: 83.333 },
+      { note: 'B5', type: 'white', position: 86.666 },
+      { note: 'C6', type: 'white', position: 93.333 }
+    ];
 
     // --- Message Box UI ---
     const createMessageBox = (message, type = 'info') => {
@@ -350,6 +376,67 @@
         isDraggingCanvas = false;
         activeMarker = null;
     });
+    
+    // Waveform touch dragging
+    let touchDraggingMarker = null;
+    let initialTouchX = 0;
+    let initialMarkerPos = 0;
+    
+    waveformCanvas.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        const rect = waveformCanvas.getBoundingClientRect();
+        const x = e.touches[0].clientX - rect.left;
+        const width = rect.width;
+        
+        const startX = sampleStart * width;
+        const endX = sampleEnd * width;
+
+        if (Math.abs(x - startX) < 20) {
+            touchDraggingMarker = 'start';
+            initialTouchX = x;
+            initialMarkerPos = sampleStart;
+        } else if (Math.abs(x - endX) < 20) {
+            touchDraggingMarker = 'end';
+            initialTouchX = x;
+            initialMarkerPos = sampleEnd;
+        } else {
+            touchDraggingMarker = 'new';
+            sampleStart = x / width;
+            sampleEnd = x / width;
+        }
+        drawWaveform();
+    });
+
+    waveformCanvas.addEventListener('touchmove', (e) => {
+        if (!touchDraggingMarker) return;
+        const rect = waveformCanvas.getBoundingClientRect();
+        const x = e.touches[0].clientX - rect.left;
+        const width = rect.width;
+        
+        let newPos;
+        if (touchDraggingMarker === 'new') {
+            const [min, max] = [Math.min(sampleStart, x / width), Math.max(sampleStart, x / width)];
+            sampleStart = min;
+            sampleEnd = max;
+        } else {
+            const deltaX = x - initialTouchX;
+            newPos = initialMarkerPos + (deltaX / width);
+            if (newPos < 0) newPos = 0;
+            if (newPos > 1) newPos = 1;
+
+            if (touchDraggingMarker === 'start' && newPos < sampleEnd) {
+                sampleStart = newPos;
+            } else if (touchDraggingMarker === 'end' && newPos > sampleStart) {
+                sampleEnd = newPos;
+            }
+        }
+        drawWaveform();
+    });
+
+    waveformCanvas.addEventListener('touchend', () => {
+        touchDraggingMarker = null;
+    });
+
 
     // Audio file upload handler
     audioFile.addEventListener('change', (e) => {
@@ -453,21 +540,67 @@
         }
     };
 
-    piano.addEventListener('mousedown', handleNoteStart);
-    piano.addEventListener('mouseup', handleNoteEnd);
-    piano.addEventListener('touchstart', (e) => {
+    // Add event listeners to the piano container, not individual keys
+    pianoContainer.addEventListener('mousedown', handleNoteStart);
+    pianoContainer.addEventListener('mouseup', handleNoteEnd);
+    pianoContainer.addEventListener('touchstart', (e) => {
         e.preventDefault();
         const touch = e.touches[0];
         const targetElement = document.elementFromPoint(touch.clientX, touch.clientY);
         handleNoteStart({ target: targetElement });
     });
-    piano.addEventListener('touchend', (e) => {
+    pianoContainer.addEventListener('touchend', (e) => {
         e.preventDefault();
         const changedTouch = e.changedTouches[0];
         const targetElement = document.elementFromPoint(changedTouch.clientX, changedTouch.clientY);
         handleNoteEnd({ target: targetElement });
     });
-    
+
+    // --- Dynamic Piano Rendering ---
+    const renderPiano = () => {
+        pianoContainer.innerHTML = '';
+        const allNotes = Object.keys(noteSemitoneOffsets);
+
+        let whiteKeyCount = 0;
+        let blackKeyCount = 0;
+        
+        // Define the white and black key positions for the entire 2-octave range
+        const whiteKeyPositions = [
+            0, 6.666, 13.333, 20, 26.666, 33.333, 40,
+            46.666, 53.333, 60, 66.666, 73.333, 80, 86.666,
+            93.333 // The final C
+        ];
+        const blackKeyPositions = [
+            3.333, 10, 23.333, 30, 36.666, 50, 56.666, 70, 76.666, 83.333
+        ];
+        
+        const whiteNotes = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
+        const blackNotes = ['C#', 'D#', 'F#', 'G#', 'A#'];
+
+        allNotes.forEach((note) => {
+            const noteName = note.slice(0, -1);
+            const octave = parseInt(note.slice(-1));
+            const keyElement = document.createElement('div');
+            keyElement.dataset.note = note;
+            
+            if (blackNotes.includes(noteName)) {
+                keyElement.classList.add('black-key');
+                keyElement.style.left = `${blackKeyPositions[blackKeyCount]}%`;
+                blackKeyCount++;
+            } else {
+                keyElement.classList.add('white-key');
+                keyElement.style.left = `${whiteKeyPositions[whiteKeyCount]}%`;
+                whiteKeyCount++;
+            }
+            
+            keyElement.innerHTML = `<span class="note-label text-xs font-semibold text-gray-700">${note}</span>`;
+            pianoContainer.appendChild(keyElement);
+        });
+    };
+
+    // The octave switch button and its listener are now removed
+    // since the piano is a full two-octave layout.
+
     // === Window and Canvas resizing ===
     const resizeCanvas = () => {
       waveformCanvas.width = waveformCanvas.offsetWidth;
@@ -475,7 +608,12 @@
       drawWaveform();
     };
     window.addEventListener('resize', resizeCanvas);
-    resizeCanvas();
+    
+    // Initial setup
+    document.addEventListener('DOMContentLoaded', () => {
+        resizeCanvas();
+        renderPiano();
+    });
   </script>
 </body>
 </html>
