@@ -1,544 +1,481 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no" />
-<title>Audio Sampler Synth — Mobile + Desktop</title>
-
-<!-- Tailwind (optional) -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Audio Sampler Synth</title>
+<!-- Tailwind CSS -->
 <script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-
 <style>
-  /* Basic theme (kept from your style) */
-  :root {
-    --bg: #0f1724;
-    --panel: #111827;
-    --muted: #94a3b8;
-    --accent: #10B981;
-    --accent-2: #3b82f6;
-    --surface: #0b1220;
-    --white: #e6eef8;
+  body {
+    font-family: 'Inter', sans-serif;
+    background-color: #121212;
+    color: #e0e0e0;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    user-select: none;
   }
-  html,body { height:100%; margin:0; font-family:'Inter',sans-serif; background:var(--bg); color:var(--white); -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; }
-  .container{ max-width:900px; margin:20px auto; padding:18px; }
-  .card{ background:var(--panel); border-radius:16px; padding:18px; box-shadow:0 6px 18px rgba(0,0,0,0.6); border:1px solid rgba(255,255,255,0.03); }
-  h1{ margin:0 0 6px 0; font-size:22px; color:var(--accent); }
-  p.sub{ margin:0 0 14px 0; color:var(--muted); font-size:14px; }
-
-  /* waveform canvas */
-  .wave-wrap{ position:relative; width:100%; height:160px; border-radius:12px; overflow:hidden; background:#0b1220; border:1px solid rgba(255,255,255,0.03); touch-action:none; -ms-touch-action:none; }
-  canvas#waveformCanvas{ width:100%; height:100%; display:block; }
-
-  .note-marker{ position:absolute; top:0; width:6px; height:100%; background:rgba(255,255,255,0.7); transform:translateX(-50%); border-radius:3px; z-index:20; cursor:ew-resize; touch-action:none; -ms-touch-action:none; }
-
-  /* piano */
-  .piano{ margin-top:14px; background:#060814; border-radius:12px; padding:12px; touch-action:none; -ms-touch-action:none; user-select:none; }
-  .piano-container{ position:relative; width:100%; height:140px; }
-  .white-key, .black-key{ position:absolute; border-radius:0 0 8px 8px; box-shadow:0 2px 6px rgba(0,0,0,0.4); transition:transform .08s ease, background-color .08s ease; }
-  .white-key{ background:#f3f4f6; height:100%; width:12.5%; border:1px solid #d1d5db; }
-  .black-key{ background:#0b1220; height:62%; width:8%; border:1px solid #222; z-index:30; }
-  .white-key.active{ background: #e8eef9; transform:translateY(2px); box-shadow:none; }
-  .black-key.active{ background:var(--accent-2); transform:translateY(2px); box-shadow:none; }
-
-  /* controls */
-  .controls{ display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-top:14px; }
-  .control{ padding:8px; text-align:center; color:var(--muted); }
-  input[type=range]{ width:100%; -webkit-appearance:none; background:transparent; }
-  input[type=file]{ display:block; width:100%; padding:8px 6px; color:var(--muted); }
-
-  /* message toast */
-  .toast{ position:fixed; right:16px; bottom:16px; background:#06202a; color:var(--white); padding:10px 14px; border-radius:10px; box-shadow:0 6px 18px rgba(0,0,0,0.6); z-index:9999; border:1px solid rgba(255,255,255,0.04); }
-
-  /* responsiveness */
-  @media (max-width:640px){
-    .container{ margin:12px; padding:12px; }
-    .piano-container{ height:110px; }
-    .wave-wrap{ height:120px; }
+  .container {
+    max-width: 800px;
+    margin: auto;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    background: #10B981; /* Tailwind 'emerald-500' */
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    margin-top: -8px; /* Adjust vertical position */
+  }
+  input[type=range]::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    background: #10B981;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+  .key {
+    transition: all 0.05s ease-in-out;
+  }
+  .key.active {
+    transform: scale(0.95);
+    background-color: #3b82f6 !important; /* Tailwind 'blue-500' */
+    box-shadow: 0 0 10px #3b82f6;
+  }
+  .note-marker {
+    position: absolute;
+    width: 4px;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.6);
+    cursor: ew-resize;
+    border-radius: 2px;
+    z-index: 10;
+  }
+  /* New Piano Styles */
+  .piano-container {
+    position: relative;
+    width: 100%;
+    height: 160px;
+  }
+  .white-key, .black-key {
+    position: absolute;
+    cursor: pointer;
+    border-radius: 0 0 5px 5px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+    transition: background-color 0.1s ease, transform 0.1s ease, box-shadow 0.1s ease;
+  }
+  .white-key {
+    width: 12.5%; /* 8 white keys in C to C octave */
+    height: 100%;
+    background-color: #f0f0f0;
+    border: 1px solid #d0d0d0;
+  }
+  .black-key {
+    width: 8%;
+    height: 60%;
+    background-color: #121212;
+    z-index: 10;
+    border: 1px solid #333;
+  }
+  .white-key.active {
+      background-color: #e0e0e0;
+      transform: translateY(2px);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  }
+  .black-key.active {
+      background-color: #3b82f6;
+      transform: translateY(2px);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
   }
 </style>
 </head>
-<body>
-  <div class="container">
-    <div class="card">
-      <h1>Sample Synth — Mobile & Desktop</h1>
-      <p class="sub">Works with touch, mouse and stylus. Upload a sample, drag selection in the waveform, then play keys.</p>
+<body class="p-4 sm:p-8">
+  <div class="container bg-gray-800 p-6 rounded-2xl shadow-lg border border-gray-700">
+    <h1 class="text-3xl font-bold text-center text-emerald-400 mb-2">Sample Synth</h1>
+    <p class="text-gray-400 text-center mb-6">Create a playable synth from any audio sample. Drag on the waveform to select a segment.</p>
+    
+    <!-- File Input & Audio Preview -->
+    <div class="mb-6">
+      <label for="audioFile" class="block text-sm font-medium text-gray-400 mb-2">Upload Audio Sample (MP3, WAV)</label>
+      <input type="file" id="audioFile" accept="audio/*" class="w-full text-sm text-gray-500
+        file:mr-4 file:py-2 file:px-4
+        file:rounded-full file:border-0
+        file:text-sm file:font-semibold
+        file:bg-violet-50 file:text-violet-700
+        hover:file:bg-violet-100
+        cursor-pointer">
+    </div>
 
-      <label style="display:block;font-size:13px;color:var(--muted);margin-bottom:8px;">Upload audio (mp3/wav)</label>
-      <input id="audioFile" type="file" accept="audio/*" />
+    <!-- Waveform Canvas -->
+    <div class="relative w-full mb-6">
+      <canvas id="waveformCanvas" class="w-full h-40 bg-gray-900 rounded-lg shadow-inner border border-gray-700 cursor-crosshair"></canvas>
+      <div id="startMarker" class="note-marker left-0" draggable="true"></div>
+      <div id="endMarker" class="note-marker right-0" draggable="true"></div>
+    </div>
 
-      <div style="margin-top:12px;" class="wave-wrap card">
-        <canvas id="waveformCanvas"></canvas>
-        <div id="startMarker" class="note-marker" style="left:0%"></div>
-        <div id="endMarker" class="note-marker" style="left:100%"></div>
+    <!-- ADSR Controls -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+      <div class="flex flex-col items-center">
+        <label for="attackSlider" class="text-sm text-gray-400 mb-2">Attack</label>
+        <input type="range" id="attackSlider" min="0.01" max="1" value="0.05" step="0.01" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer">
+        <span id="attackValue" class="text-xs text-gray-500 mt-1">0.05s</span>
       </div>
-
-      <div class="controls">
-        <div class="control">
-          <label>Attack</label><br/>
-          <input id="attackSlider" type="range" min="0.01" max="1" step="0.01" value="0.05"/><br/>
-          <small id="attackValue">0.05s</small>
-        </div>
-        <div class="control">
-          <label>Decay</label><br/>
-          <input id="decaySlider" type="range" min="0.01" max="1" step="0.01" value="0.1"/><br/>
-          <small id="decayValue">0.10s</small>
-        </div>
-        <div class="control">
-          <label>Sustain</label><br/>
-          <input id="sustainSlider" type="range" min="0.01" max="1" step="0.01" value="0.7"/><br/>
-          <small id="sustainValue">0.70</small>
-        </div>
-        <div class="control">
-          <label>Release</label><br/>
-          <input id="releaseSlider" type="range" min="0.01" max="2" step="0.01" value="0.5"/><br/>
-          <small id="releaseValue">0.50s</small>
-        </div>
+      <div class="flex flex-col items-center">
+        <label for="decaySlider" class="text-sm text-gray-400 mb-2">Decay</label>
+        <input type="range" id="decaySlider" min="0.01" max="1" value="0.1" step="0.01" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer">
+        <span id="decayValue" class="text-xs text-gray-500 mt-1">0.10s</span>
       </div>
-
-      <div class="piano card" id="piano">
-        <div class="piano-container" id="pianoContainer">
-          <!-- white keys (8) -->
-          <div data-note="C4"  class="white-key" style="left:0%"></div>
-          <div data-note="D4"  class="white-key" style="left:12.5%"></div>
-          <div data-note="E4"  class="white-key" style="left:25%"></div>
-          <div data-note="F4"  class="white-key" style="left:37.5%"></div>
-          <div data-note="G4"  class="white-key" style="left:50%"></div>
-          <div data-note="A4"  class="white-key" style="left:62.5%"></div>
-          <div data-note="B4"  class="white-key" style="left:75%"></div>
-          <div data-note="C5"  class="white-key" style="left:87.5%"></div>
-          <!-- black keys -->
-          <div data-note="C#4" class="black-key" style="left:8.5%"></div>
-          <div data-note="D#4" class="black-key" style="left:21%"></div>
-          <div data-note="F#4" class="black-key" style="left:46%"></div>
-          <div data-note="G#4" class="black-key" style="left:58.5%"></div>
-          <div data-note="A#4" class="black-key" style="left:71%"></div>
-        </div>
+      <div class="flex flex-col items-center">
+        <label for="sustainSlider" class="text-sm text-gray-400 mb-2">Sustain</label>
+        <input type="range" id="sustainSlider" min="0.01" max="1" value="0.7" step="0.01" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer">
+        <span id="sustainValue" class="text-xs text-gray-500 mt-1">0.70</span>
+      </div>
+      <div class="flex flex-col items-center">
+        <label for="releaseSlider" class="text-sm text-gray-400 mb-2">Release</label>
+        <input type="range" id="releaseSlider" min="0.01" max="1" value="0.5" step="0.01" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer">
+        <span id="releaseValue" class="text-xs text-gray-500 mt-1">0.50s</span>
+      </div>
+    </div>
+    
+    <!-- Virtual Piano Keyboard -->
+    <div id="piano" class="relative flex justify-center select-none bg-gray-900 rounded-xl p-4 shadow-xl border border-gray-700">
+      <div class="piano-container">
+        <!-- White Keys -->
+        <div data-note="C4" class="white-key" style="left:0%"></div>
+        <div data-note="D4" class="white-key" style="left:12.5%"></div>
+        <div data-note="E4" class="white-key" style="left:25%"></div>
+        <div data-note="F4" class="white-key" style="left:37.5%"></div>
+        <div data-note="G4" class="white-key" style="left:50%"></div>
+        <div data-note="A4" class="white-key" style="left:62.5%"></div>
+        <div data-note="B4" class="white-key" style="left:75%"></div>
+        <div data-note="C5" class="white-key" style="left:87.5%"></div>
+        <!-- Black Keys -->
+        <div data-note="C#4" class="black-key" style="left:8.5%;"></div>
+        <div data-note="D#4" class="black-key" style="left:21%;"></div>
+        <div data-note="F#4" class="black-key" style="left:46%;"></div>
+        <div data-note="G#4" class="black-key" style="left:58.5%;"></div>
+        <div data-note="A#4" class="black-key" style="left:71%;"></div>
       </div>
     </div>
   </div>
 
-  <!-- Small toast helper -->
-  <div id="toastHost" aria-live="polite"></div>
+  <script>
+    // Global variables
+    let audioCtx;
+    let audioBuffer = null;
+    let sampleStart = 0;
+    let sampleEnd = 1;
+    let activeNotes = new Map();
+    let isDraggingCanvas = false;
+    let dragStartPos = 0;
 
-<script>
-/* ---------- Mobile + Desktop friendly synth UI ----------
+    // DOM Element references
+    const audioFile = document.getElementById('audioFile');
+    const waveformCanvas = document.getElementById('waveformCanvas');
+    const ctx = waveformCanvas.getContext('2d');
+    const piano = document.getElementById('piano');
+    const startMarker = document.getElementById('startMarker');
+    const endMarker = document.getElementById('endMarker');
 
-Key improvements vs a typical desktop-only page:
- - Uses pointer events for unified handling (mouse, touch, stylus)
- - Falls back to touch/mouse where pointer is unavailable
- - Resumes AudioContext on first interaction (mobile requires user gesture)
- - High-DPI canvas scaling so waveform looks sharp on mobile
- - touch-action:none on interactive areas to prevent page scrolling while dragging
- - Proper multi-touch handling for piano keys (touch identifiers mapped to notes)
- - Marker dragging using pointer capture for reliable drags
+    // ADSR Sliders and values
+    const attackSlider = document.getElementById('attackSlider');
+    const decaySlider = document.getElementById('decaySlider');
+    const sustainSlider = document.getElementById('sustainSlider');
+    const releaseSlider = document.getElementById('releaseSlider');
+    const attackValue = document.getElementById('attackValue');
+    const decayValue = document.getElementById('decayValue');
+    const sustainValue = document.getElementById('sustainValue');
+    const releaseValue = document.getElementById('releaseValue');
 
-This script combines the logic for waveform rendering, selection markers,
-ADSR envelope application and piano note start/stop.
+    // Update ADSR value displays
+    attackSlider.oninput = () => attackValue.textContent = `${parseFloat(attackSlider.value).toFixed(2)}s`;
+    decaySlider.oninput = () => decayValue.textContent = `${parseFloat(decaySlider.value).toFixed(2)}s`;
+    sustainSlider.oninput = () => sustainValue.textContent = `${parseFloat(sustainSlider.value).toFixed(2)}`;
+    releaseSlider.oninput = () => releaseValue.textContent = `${parseFloat(releaseSlider.value).toFixed(2)}s`;
 
-*/
+    // Note mapping: maps a musical note to its semitone offset from A4 (440Hz)
+    const noteSemitoneOffsets = {
+      'C4': -9, 'C#4': -8, 'D4': -7, 'D#4': -6, 'E4': -5, 'F4': -4, 'F#4': -3,
+      'G4': -2, 'G#4': -1, 'A4': 0, 'A#4': 1, 'B4': 2, 'C5': 3, 'C#5': 4
+    };
 
-(() => {
-  // ----- DOM references -----
-  const audioFile = document.getElementById('audioFile');
-  const waveformCanvas = document.getElementById('waveformCanvas');
-  const startMarker = document.getElementById('startMarker');
-  const endMarker = document.getElementById('endMarker');
-  const pianoContainer = document.getElementById('pianoContainer');
-  const piano = document.getElementById('piano');
+    // --- Message Box UI ---
+    const createMessageBox = (message, type = 'info') => {
+      const container = document.createElement('div');
+      container.className = `fixed bottom-4 right-4 p-4 rounded-lg shadow-xl text-white z-50 transition-transform transform translate-y-full opacity-0`;
 
-  const attackSlider = document.getElementById('attackSlider');
-  const decaySlider  = document.getElementById('decaySlider');
-  const sustainSlider = document.getElementById('sustainSlider');
-  const releaseSlider = document.getElementById('releaseSlider');
+      let bgColor;
+      if (type === 'error') bgColor = 'bg-red-500';
+      else if (type === 'success') bgColor = 'bg-green-500';
+      else bgColor = 'bg-blue-500';
 
-  const attackValue = document.getElementById('attackValue');
-  const decayValue  = document.getElementById('decayValue');
-  const sustainValue = document.getElementById('sustainValue');
-  const releaseValue = document.getElementById('releaseValue');
+      container.classList.add(bgColor);
+      container.textContent = message;
+      document.body.appendChild(container);
 
-  const toastHost = document.getElementById('toastHost');
+      // Animate in and out
+      setTimeout(() => {
+        container.classList.remove('translate-y-full', 'opacity-0');
+        container.classList.add('translate-y-0', 'opacity-100');
+      }, 10);
 
-  // Display ADSR values
-  attackSlider.addEventListener('input', () => attackValue.textContent = parseFloat(attackSlider.value).toFixed(2) + 's');
-  decaySlider.addEventListener('input', () => decayValue.textContent = parseFloat(decaySlider.value).toFixed(2) + 's');
-  sustainSlider.addEventListener('input', () => sustainValue.textContent = parseFloat(sustainSlider.value).toFixed(2));
-  releaseSlider.addEventListener('input', () => releaseValue.textContent = parseFloat(releaseSlider.value).toFixed(2) + 's');
+      setTimeout(() => {
+        container.classList.remove('translate-y-0', 'opacity-100');
+        container.classList.add('translate-y-full', 'opacity-0');
+        setTimeout(() => container.remove(), 500);
+      }, 3000);
+    };
 
-  // ----- Audio state -----
-  let audioCtx = null;
-  let audioBuffer = null;
-  let sampleStart = 0; // fraction 0..1
-  let sampleEnd = 1;   // fraction 0..1
-  const activeNotes = new Map(); // note -> { source, gain, keyEl }
-  const pointerToNote = new Map(); // pointerId -> note (for multi-touch)
+    // Function to initialize AudioContext on first user gesture
+    let isAudioCtxInitialized = false;
+    const initializeAudioContext = () => {
+        if (isAudioCtxInitialized) return;
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        isAudioCtxInitialized = true;
+        createMessageBox('AudioContext initialized!', 'success');
+    };
 
-  // Note semitone mapping (relative to A4)
-  const noteSemitoneOffsets = {'C4':-9,'C#4':-8,'D4':-7,'D#4':-6,'E4':-5,'F4':-4,'F#4':-3,'G4':-2,'G#4':-1,'A4':0,'A#4':1,'B4':2,'C5':3};
+    // === Waveform Drawing and Selection ===
+    const drawWaveform = () => {
+      if (!audioBuffer) return;
+      const width = waveformCanvas.width;
+      const height = waveformCanvas.height;
+      const data = audioBuffer.getChannelData(0);
+      const step = Math.ceil(data.length / width);
+      const amp = height / 2;
 
-  // Utility: toast messages
-  function toast(msg, timeout=2500){
-    const el = document.createElement('div');
-    el.className = 'toast';
-    el.textContent = msg;
-    toastHost.appendChild(el);
-    setTimeout(()=> el.remove(), timeout);
-  }
+      ctx.clearRect(0, 0, width, height);
+      ctx.fillStyle = '#1f2937'; // Background
+      ctx.fillRect(0, 0, width, height);
+      ctx.strokeStyle = '#4ade80'; // Waveform color (Tailwind green-400)
+      ctx.lineWidth = 2;
 
-  // Ensure AudioContext exists and is resumed on first user gesture
-  function ensureAudioContext(){
-    if (!audioCtx) {
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    }
-    // resume if suspended
-    if (audioCtx.state === 'suspended') {
-      audioCtx.resume().catch(()=>{/* ignore */});
-    }
-    return audioCtx;
-  }
-
-  // High-DPI canvas scaling
-  const ctx = waveformCanvas.getContext('2d');
-  function resizeCanvasHiDPI(){
-    const dpr = Math.max(1, window.devicePixelRatio || 1);
-    const rect = waveformCanvas.getBoundingClientRect();
-    waveformCanvas.width  = Math.round(rect.width  * dpr);
-    waveformCanvas.height = Math.round(rect.height * dpr);
-    waveformCanvas.style.width  = rect.width + 'px';
-    waveformCanvas.style.height = rect.height + 'px';
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    drawWaveform();
-  }
-  window.addEventListener('resize', resizeCanvasHiDPI);
-  resizeCanvasHiDPI();
-
-  // draw waveform from audioBuffer
-  function drawWaveform(){
-    if (!audioBuffer) {
-      // clear canvas
-      ctx.clearRect(0,0,waveformCanvas.width,waveformCanvas.height);
-      return;
-    }
-    const width = waveformCanvas.clientWidth;
-    const height = waveformCanvas.clientHeight;
-    const data = audioBuffer.getChannelData(0);
-    const samplesPerPixel = Math.max(1, Math.floor(data.length / width));
-    const midY = height/2;
-
-    ctx.clearRect(0,0,width,height);
-    // bg
-    ctx.fillStyle = '#071019';
-    ctx.fillRect(0,0,width,height);
-
-    // waveform
-    ctx.beginPath();
-    ctx.moveTo(0, midY);
-    ctx.lineWidth = 1.5;
-    ctx.strokeStyle = '#60a5fa';
-    for (let x=0; x<width; x++){
-      const start = Math.floor(x * samplesPerPixel);
-      let min = 1.0, max = -1.0;
-      for (let i=0;i<samplesPerPixel && (start+i)<data.length;i++){
-        const v = data[start+i];
-        if (v < min) min = v;
-        if (v > max) max = v;
+      ctx.beginPath();
+      ctx.moveTo(0, amp);
+      for (let i = 0; i < width; i++) {
+        let min = 1.0;
+        let max = -1.0;
+        for (let j = 0; j < step; j++) {
+          const datum = data[Math.floor((i * step) + j)];
+          if (datum < min) min = datum;
+          if (datum > max) max = datum;
+        }
+        ctx.lineTo(i, (1 + min) * amp);
       }
-      const y1 = midY + min * midY;
-      const y2 = midY + max * midY;
-      ctx.lineTo(x, y1);
-    }
-    ctx.stroke();
+      ctx.lineTo(width, amp);
+      for (let i = width - 1; i >= 0; i--) {
+        let min = 1.0;
+        let max = -1.0;
+        for (let j = 0; j < step; j++) {
+          const datum = data[Math.floor((i * step) + j)];
+          if (datum < min) min = datum;
+          if (datum > max) max = datum;
+        }
+        ctx.lineTo(i, (1 + max) * amp);
+      }
+      ctx.closePath();
+      ctx.stroke();
+      ctx.fillStyle = '#10B981';
+      ctx.fill();
 
-    // filled area (optional)
-    ctx.fillStyle = 'rgba(16,185,129,0.12)';
-    ctx.fill();
+      // Draw the selection overlay
+      const startX = sampleStart * width;
+      const endX = sampleEnd * width;
+      ctx.fillStyle = 'rgba(191, 219, 254, 0.2)'; // Blue-200 with transparency
+      ctx.fillRect(startX, 0, endX - startX, height);
 
-    // draw selection overlay
-    const sx = sampleStart * width;
-    const ex = sampleEnd * width;
-    ctx.fillStyle = 'rgba(96,165,250,0.12)';
-    ctx.fillRect(sx, 0, Math.max(2, ex - sx), height);
-
-    // position markers
-    startMarker.style.left = `${sx}px`;
-    endMarker.style.left = `${ex}px`;
-  }
-
-  // ----- waveform selection markers dragging (pointer events) -----
-  // Use pointerdown/pointermove/pointerup with pointer capture for robustness.
-  function markerPointerDown(e, which){
-    e.preventDefault();
-    const rect = waveformCanvas.getBoundingClientRect();
-    const px = e.clientX - rect.left;
-    const frac = Math.min(1, Math.max(0, px / rect.width));
-    if (which === 'start'){
-      sampleStart = Math.min(frac, sampleEnd);
-    } else {
-      sampleEnd = Math.max(frac, sampleStart);
-    }
-    drawWaveform();
-    // capture pointer on the canvas area for consistent moves
-    waveformCanvas.setPointerCapture(e.pointerId);
-    const moveHandler = (ev) => {
-      const px2 = ev.clientX - rect.left;
-      const frac2 = Math.min(1, Math.max(0, px2 / rect.width));
-      if (which === 'start'){ sampleStart = Math.min(frac2, sampleEnd); }
-      else { sampleEnd = Math.max(frac2, sampleStart); }
-      drawWaveform();
+      // Update marker positions
+      startMarker.style.left = `${startX}px`;
+      endMarker.style.left = `${endX}px`;
     };
-    const upHandler = (ev) => {
-      waveformCanvas.removeEventListener('pointermove', moveHandler);
-      waveformCanvas.removeEventListener('pointerup', upHandler);
-      waveformCanvas.releasePointerCapture(ev.pointerId);
-    };
-    waveformCanvas.addEventListener('pointermove', moveHandler);
-    waveformCanvas.addEventListener('pointerup', upHandler);
-  }
 
-  // Click/drag to create a new selection on the waveform
-  function waveformPointerDown(e){
-    // only start selection if click/touch on canvas area (not markers)
-    e.preventDefault();
-    const rect = waveformCanvas.getBoundingClientRect();
-    const px = e.clientX - rect.left;
-    const frac = Math.min(1, Math.max(0, px / rect.width));
-    sampleStart = frac;
-    sampleEnd = frac;
-    drawWaveform();
-    waveformCanvas.setPointerCapture(e.pointerId);
+    // New and improved dragging logic
+    waveformCanvas.addEventListener('mousedown', (e) => {
+        const rect = waveformCanvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const width = rect.width;
 
-    const move = (ev) => {
-      const px2 = ev.clientX - rect.left;
-      const frac2 = Math.min(1, Math.max(0, px2 / rect.width));
-      if (frac2 < sampleStart) {
-        sampleEnd = sampleStart;
-        sampleStart = frac2;
-      } else {
-        sampleEnd = frac2;
+        const startX = sampleStart * width;
+        const endX = sampleEnd * width;
+
+        if (Math.abs(x - startX) < 10) {
+            isDraggingCanvas = true;
+            activeMarker = 'start';
+        } else if (Math.abs(x - endX) < 10) {
+            isDraggingCanvas = true;
+            activeMarker = 'end';
+        } else {
+             isDraggingCanvas = true;
+             activeMarker = 'new';
+             sampleStart = x / width;
+             sampleEnd = x / width;
+        }
+        e.preventDefault();
+    });
+
+    waveformCanvas.addEventListener('mousemove', (e) => {
+      if (!isDraggingCanvas) return;
+      const rect = waveformCanvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const width = rect.width;
+
+      let newPos = x / width;
+      if (newPos < 0) newPos = 0;
+      if (newPos > 1) newPos = 1;
+
+      if (activeMarker === 'start') {
+          if (newPos < sampleEnd) {
+              sampleStart = newPos;
+          }
+      } else if (activeMarker === 'end') {
+          if (newPos > sampleStart) {
+              sampleEnd = newPos;
+          }
+      } else if (activeMarker === 'new') {
+          const [min, max] = [Math.min(sampleStart, newPos), Math.max(sampleStart, newPos)];
+          sampleStart = min;
+          sampleEnd = max;
       }
       drawWaveform();
+    });
+
+    waveformCanvas.addEventListener('mouseup', () => {
+        isDraggingCanvas = false;
+        activeMarker = null;
+    });
+
+    // Audio file upload handler
+    audioFile.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (!audioCtx) initializeAudioContext();
+        audioCtx.decodeAudioData(event.target.result)
+          .then(buffer => {
+            audioBuffer = buffer;
+            sampleStart = 0;
+            sampleEnd = 1;
+            resizeCanvas();
+            createMessageBox('Audio file loaded.', 'success');
+          })
+          .catch(err => {
+            console.error('Error decoding audio data:', err);
+            createMessageBox('Error decoding audio file.', 'error');
+          });
+      };
+      reader.readAsArrayBuffer(file);
+    });
+
+    // === ADSR Logic ===
+    const applyADSR = (gainNode, now) => {
+      const attack = parseFloat(attackSlider.value);
+      const decay = parseFloat(decaySlider.value);
+      const sustain = parseFloat(sustainSlider.value);
+      gainNode.gain.cancelScheduledValues(now);
+      gainNode.gain.setValueAtTime(0, now);
+      gainNode.gain.linearRampToValueAtTime(1, now + attack);
+      gainNode.gain.linearRampToValueAtTime(sustain, now + attack + decay);
     };
-    const up = (ev) => {
-      waveformCanvas.removeEventListener('pointermove', move);
-      waveformCanvas.removeEventListener('pointerup', up);
-      waveformCanvas.releasePointerCapture(ev.pointerId);
+
+    const stopNote = (gainNode, now) => {
+      const release = parseFloat(releaseSlider.value);
+      gainNode.gain.cancelScheduledValues(now);
+      gainNode.gain.setValueAtTime(gainNode.gain.value, now);
+      gainNode.gain.linearRampToValueAtTime(0, now + release);
     };
-    waveformCanvas.addEventListener('pointermove', move);
-    waveformCanvas.addEventListener('pointerup', up);
-  }
 
-  // Setup pointer handlers with fallback to mouse/touch if pointer not supported
-  if (window.PointerEvent) {
-    startMarker.addEventListener('pointerdown', (e)=> markerPointerDown(e,'start'), {passive:false});
-    endMarker.addEventListener('pointerdown', (e)=> markerPointerDown(e,'end'), {passive:false});
-    waveformCanvas.addEventListener('pointerdown', waveformPointerDown, {passive:false});
-  } else {
-    // fallback: mouse & touch
-    startMarker.addEventListener('mousedown', (e)=> markerPointerDown(e,'start'));
-    endMarker.addEventListener('mousedown', (e)=> markerPointerDown(e,'end'));
-    waveformCanvas.addEventListener('mousedown', waveformPointerDown);
+    // === Piano Keyboard Logic ===
+    const playNote = (note, keyElement) => {
+      if (!audioBuffer) {
+        createMessageBox('Please upload an audio file first.', 'error');
+        return;
+      }
+      // Ensure AudioContext is ready for mobile devices
+      initializeAudioContext();
+      
+      keyElement.classList.add('active');
 
-    waveformCanvas.addEventListener('touchstart', (e)=>{
-      e.preventDefault();
-      const t = e.touches[0];
-      waveformPointerDown({ clientX: t.clientX, clientY: t.clientY, pointerId: 'touch' });
-    }, {passive:false});
-  }
+      const source = audioCtx.createBufferSource();
+      source.buffer = audioBuffer;
+      const gainNode = audioCtx.createGain();
 
-  // ----- Handle file upload & decode -----
-  audioFile.addEventListener('change', async (ev) => {
-    const file = ev.target.files && ev.target.files[0];
-    if (!file) return;
-    try {
-      ensureAudioContext();
-      const ab = await file.arrayBuffer();
-      // decodeAudioData returns a Promise in modern browsers
-      audioBuffer = await audioCtx.decodeAudioData(ab.slice(0));
-      sampleStart = 0; sampleEnd = 1;
-      resizeCanvasHiDPI(); // triggers drawWaveform
+      source.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+
+      const semitones = noteSemitoneOffsets[note];
+      const playbackRate = Math.pow(2, semitones / 12);
+      source.playbackRate.value = playbackRate;
+
+      const duration = audioBuffer.duration * (sampleEnd - sampleStart);
+      source.start(0, audioBuffer.duration * sampleStart, duration);
+      
+      // Apply ADSR envelope
+      applyADSR(gainNode, audioCtx.currentTime);
+
+      activeNotes.set(note, { source, gainNode, keyElement });
+    };
+
+    const stopNoteAndCleanup = (note) => {
+      if (activeNotes.has(note)) {
+        const { source, gainNode, keyElement } = activeNotes.get(note);
+        stopNote(gainNode, audioCtx.currentTime);
+        const releaseTime = parseFloat(releaseSlider.value);
+        source.stop(audioCtx.currentTime + releaseTime);
+        activeNotes.delete(note);
+        keyElement.classList.remove('active');
+      }
+    };
+    
+    // Unified event listeners for mouse and touch
+    const handleNoteStart = (e) => {
+        const targetKey = e.target.closest('.white-key, .black-key');
+        if (targetKey) {
+            const note = targetKey.dataset.note;
+            if (!activeNotes.has(note)) {
+                playNote(note, targetKey);
+            }
+        }
+    };
+
+    const handleNoteEnd = (e) => {
+        const targetKey = e.target.closest('.white-key, .black-key');
+        if (targetKey) {
+            const note = targetKey.dataset.note;
+            stopNoteAndCleanup(note);
+        }
+    };
+
+    piano.addEventListener('mousedown', handleNoteStart);
+    piano.addEventListener('mouseup', handleNoteEnd);
+    piano.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        const touch = e.touches[0];
+        const targetElement = document.elementFromPoint(touch.clientX, touch.clientY);
+        handleNoteStart({ target: targetElement });
+    });
+    piano.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        const changedTouch = e.changedTouches[0];
+        const targetElement = document.elementFromPoint(changedTouch.clientX, changedTouch.clientY);
+        handleNoteEnd({ target: targetElement });
+    });
+    
+    // === Window and Canvas resizing ===
+    const resizeCanvas = () => {
+      waveformCanvas.width = waveformCanvas.offsetWidth;
+      waveformCanvas.height = waveformCanvas.offsetHeight;
       drawWaveform();
-      toast('Sample loaded: ' + (file.name || 'audio'));
-    } catch (err) {
-      console.error('Decode error', err);
-      toast('Failed to decode audio file');
-    }
-  });
-
-  // ----- ADSR helpers -----
-  function applyADSR(gainNode, when) {
-    const attack = parseFloat(attackSlider.value);
-    const decay = parseFloat(decaySlider.value);
-    const sustain = parseFloat(sustainSlider.value);
-    gainNode.gain.cancelScheduledValues(when);
-    gainNode.gain.setValueAtTime(0, when);
-    gainNode.gain.linearRampToValueAtTime(1, when + attack);
-    gainNode.gain.linearRampToValueAtTime(sustain, when + attack + decay);
-  }
-  function stopADSR(gainNode, when){
-    const release = parseFloat(releaseSlider.value);
-    gainNode.gain.cancelScheduledValues(when);
-    // read current value safely
-    const cur = gainNode.gain.value || 0;
-    gainNode.gain.setValueAtTime(cur, when);
-    gainNode.gain.linearRampToValueAtTime(0, when + release);
-  }
-
-  // ----- Play/Stop note using simple BufferSource + playbackRate -----
-  function playNoteSimple(note, keyEl){
-    if (!audioBuffer) {
-      toast('Upload a sample first');
-      return;
-    }
-    ensureAudioContext();
-    const semis = noteSemitoneOffsets[note] ?? 0;
-    const rate = Math.pow(2, semis / 12);
-
-    // create nodes
-    const src = audioCtx.createBufferSource();
-    src.buffer = audioBuffer;
-    src.playbackRate.value = rate;
-
-    const gain = audioCtx.createGain();
-    gain.gain.value = 0;
-
-    src.connect(gain);
-    gain.connect(audioCtx.destination);
-
-    // determine start offset & duration (from selection)
-    const fullDuration = audioBuffer.duration;
-    const offset = sampleStart * fullDuration;
-    const dur = Math.max(0.05, (sampleEnd - sampleStart) * fullDuration);
-
-    applyADSR(gain, audioCtx.currentTime);
-    src.start(0, offset, dur + 2.0); // slightly longer to allow release
-    // store
-    activeNotes.set(note, { src, gain, keyEl });
-    keyEl.classList.add('active');
-  }
-
-  function stopNoteSimple(note){
-    const entry = activeNotes.get(note);
-    if (!entry) return;
-    const { src, gain, keyEl } = entry;
-    stopADSR(gain, audioCtx.currentTime);
-    // stop after release time + small epsilon
-    const release = parseFloat(releaseSlider.value);
-    try { src.stop(audioCtx.currentTime + release + 0.05); } catch(e){}
-    keyEl.classList.remove('active');
-    activeNotes.delete(note);
-  }
-
-  // ----- Piano interactions: pointer-based multi-touch friendly -----
-  function getKeyFromPoint(x,y){
-    const el = document.elementFromPoint(x,y);
-    if (!el) return null;
-    return el.closest('.white-key, .black-key');
-  }
-
-  // On pointerdown on a key, start a note and map pointerId -> note
-  function pianoPointerDown(e){
-    e.preventDefault();
-    const id = e.pointerId ?? ('mouse');
-    const clientX = e.clientX, clientY = e.clientY;
-    const keyEl = getKeyFromPoint(clientX, clientY);
-    if (!keyEl) return;
-    const note = keyEl.dataset.note;
-    if (!note) return;
-    // avoid duplicate starting
-    if (!activeNotes.has(note)) {
-      ensureAudioContext();
-      playNoteSimple(note, keyEl);
-    }
-    pointerToNote.set(id, note);
-
-    // capture moves so dragging off/on changes the active note if needed
-    keyEl.setPointerCapture && keyEl.setPointerCapture(id);
-  }
-
-  function pianoPointerMove(e){
-    // support dragging between keys: check if pointer maps to new key
-    const id = e.pointerId ?? 'mouse';
-    if (!pointerToNote.has(id)) return;
-    const clientX = e.clientX, clientY = e.clientY;
-    const hitKey = getKeyFromPoint(clientX, clientY);
-    const prevNote = pointerToNote.get(id);
-    const prevKeyEl = document.querySelector(`[data-note="${prevNote}"]`);
-    if (hitKey && hitKey.dataset.note !== prevNote) {
-      // stop previous
-      if (prevNote) stopNoteSimple(prevNote);
-      // start new
-      const newNote = hitKey.dataset.note;
-      pointerToNote.set(id, newNote);
-      playNoteSimple(newNote, hitKey);
-    } else if (!hitKey) {
-      // pointer left the piano — stop previous
-      if (prevNote) { stopNoteSimple(prevNote); pointerToNote.delete(id); }
-    }
-  }
-
-  function pianoPointerUp(e){
-    e.preventDefault();
-    const id = e.pointerId ?? 'mouse';
-    const note = pointerToNote.get(id);
-    if (note) stopNoteSimple(note);
-    pointerToNote.delete(id);
-  }
-
-  if (window.PointerEvent){
-    piano.addEventListener('pointerdown', pianoPointerDown, {passive:false});
-    piano.addEventListener('pointermove', pianoPointerMove, {passive:false});
-    piano.addEventListener('pointerup', pianoPointerUp, {passive:false});
-    piano.addEventListener('pointercancel', pianoPointerUp, {passive:false});
-    // prevent page scroll while touching piano/waveform
-    piano.addEventListener('touchstart', (e)=> e.preventDefault(), {passive:false});
-  } else {
-    // fallback: touch & mouse
-    piano.addEventListener('mousedown', (e)=> pianoPointerDown(e));
-    piano.addEventListener('mousemove', (e)=> pianoPointerMove(e));
-    piano.addEventListener('mouseup',   (e)=> pianoPointerUp(e));
-
-    piano.addEventListener('touchstart', (ev)=>{
-      ev.preventDefault();
-      for (const t of ev.changedTouches){
-        pianoPointerDown({ pointerId: t.identifier, clientX: t.clientX, clientY: t.clientY, preventDefault: ()=>{} });
-      }
-    }, {passive:false});
-    piano.addEventListener('touchmove', (ev)=>{
-      ev.preventDefault();
-      for (const t of ev.touches){
-        pianoPointerMove({ pointerId: t.identifier, clientX: t.clientX, clientY: t.clientY });
-      }
-    }, {passive:false});
-    piano.addEventListener('touchend', (ev)=>{
-      ev.preventDefault();
-      for (const t of ev.changedTouches){
-        pianoPointerUp({ pointerId: t.identifier, clientX: t.clientX, clientY: t.clientY, preventDefault: ()=>{} });
-      }
-    }, {passive:false});
-  }
-
-  // As a convenience: resume audio on any first touch/pointer anywhere on the document
-  function firstUserGestureForAudio(){
-    ensureAudioContext();
-    // remove listeners after first gesture
-    document.removeEventListener('pointerdown', firstUserGestureForAudio);
-    document.removeEventListener('touchstart', firstUserGestureForAudio);
-    document.removeEventListener('mousedown', firstUserGestureForAudio);
-  }
-  document.addEventListener('pointerdown', firstUserGestureForAudio, {passive:false});
-  document.addEventListener('touchstart', firstUserGestureForAudio, {passive:false});
-  document.addEventListener('mousedown', firstUserGestureForAudio, {passive:false});
-
-  // Clickable markers: also allow direct clicking to nudge
-  startMarker.addEventListener('dblclick', ()=> { sampleStart = 0; drawWaveform(); });
-  endMarker.addEventListener('dblclick', ()=> { sampleEnd = 1; drawWaveform(); });
-
-  // init draw loop if audio already exists (rare)
-  drawWaveform();
-
-  // initial message
-  toast('Ready — tap a key to start audio (first tap resumes audio on mobile).', 3000);
-})();
-</script>
+    };
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+  </script>
 </body>
 </html>
