@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Audio Sampler Synth</title>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  body {
+    font-family: 'Inter', sans-serif;
+    background-color: #121212;
+    color: #e0e0e0;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    user-select: none;
+  }
+  .container {
+    max-width: 800px;
+    margin: auto;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    background: #10B981; /* Tailwind 'emerald-500' */
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    margin-top: -8px; /* Adjust vertical position */
+  }
+  input[type=range]::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    background: #10B981;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+  .key {
+    transition: all 0.05s ease-in-out;
+  }
+  .key.active {
+    transform: scale(0.95);
+    background-color: #3b82f6 !important; /* Tailwind 'blue-500' */
+    box-shadow: 0 0 10px #3b82f6;
+  }
+  .note-marker {
+    position: absolute;
+    width: 4px;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.6);
+    cursor: ew-resize;
+    border-radius: 2px;
+    z-index: 10;
+  }
+
+  /* New Piano Styles */
+  .piano-container {
+    position: relative;
+    width: 100%;
+    height: 160px;
+  }
+  .white-key, .black-key {
+    position: absolute;
+    cursor: pointer;
+    border-radius: 0 0 5px 5px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+    transition: background-color 0.1s ease, transform 0.1s ease, box-shadow 0.1s ease;
+  }
+  .white-key {
+    width: 12.5%; /* 8 white keys in C to C octave */
+    height: 100%;
+    background-color: #f0f0f0;
+    border: 1px solid #d0d0d0;
+  }
+  .black-key {
+    width: 8%;
+    height: 60%;
+    background-color: #121212;
+    z-index: 10;
+    border: 1px solid #333;
+  }
+  .white-key.active {
+      background-color: #e0e0e0;
+      transform: translateY(2px);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  }
+  .black-key.active {
+      background-color: #3b82f6;
+      transform: translateY(2px);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  }
+</style>
+</head>
+<body class="p-4 sm:p-8">
+  <div class="container bg-gray-800 p-6 rounded-2xl shadow-lg border border-gray-700">
+    <h1 class="text-3xl font-bold text-center text-emerald-400 mb-2">Sample Synth</h1>
+    <p class="text-gray-400 text-center mb-6">Create a playable synth from any audio sample. Drag on the waveform to select a segment.</p>
+    
+    <!-- File Input & Audio Preview -->
+    <div class="mb-6">
+      <label for="audioFile" class="block text-sm font-medium text-gray-400 mb-2">Upload Audio Sample (MP3, WAV)</label>
+      <input type="file" id="audioFile" accept="audio/*" class="w-full text-sm text-gray-500
+        file:mr-4 file:py-2 file:px-4
+        file:rounded-full file:border-0
+        file:text-sm file:font-semibold
+        file:bg-violet-50 file:text-violet-700
+        hover:file:bg-violet-100
+        cursor-pointer">
+    </div>
+
+    <!-- Waveform Canvas -->
+    <div class="relative w-full mb-6">
+      <canvas id="waveformCanvas" class="w-full h-40 bg-gray-900 rounded-lg shadow-inner border border-gray-700 cursor-crosshair"></canvas>
+      <div id="startMarker" class="note-marker left-0" draggable="true"></div>
+      <div id="endMarker" class="note-marker right-0" draggable="true"></div>
+    </div>
+
+    <!-- ADSR Controls -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+      <div class="flex flex-col items-center">
+        <label for="attackSlider" class="text-sm text-gray-400 mb-2">Attack</label>
+        <input type="range" id="attackSlider" min="0.01" max="1" value="0.05" step="0.01" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer">
+        <span id="attackValue" class="text-xs text-gray-500 mt-1">0.05s</span>
+      </div>
+      <div class="flex flex-col items-center">
+        <label for="decaySlider" class="text-sm text-gray-400 mb-2">Decay</label>
+        <input type="range" id="decaySlider" min="0.01" max="1" value="0.1" step="0.01" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer">
+        <span id="decayValue" class="text-xs text-gray-500 mt-1">0.10s</span>
+      </div>
+      <div class="flex flex-col items-center">
+        <label for="sustainSlider" class="text-sm text-gray-400 mb-2">Sustain</label>
+        <input type="range" id="sustainSlider" min="0.01" max="1" value="0.7" step="0.01" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer">
+        <span id="sustainValue" class="text-xs text-gray-500 mt-1">0.70</span>
+      </div>
+      <div class="flex flex-col items-center">
+        <label for="releaseSlider" class="text-sm text-gray-400 mb-2">Release</label>
+        <input type="range" id="releaseSlider" min="0.01" max="1" value="0.5" step="0.01" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer">
+        <span id="releaseValue" class="text-xs text-gray-500 mt-1">0.50s</span>
+      </div>
+    </div>
+    
+    <!-- Virtual Piano Keyboard -->
+    <div id="piano" class="relative flex justify-center select-none bg-gray-900 rounded-xl p-4 shadow-xl border border-gray-700">
+      <div class="piano-container">
+        <!-- White Keys -->
+        <div data-note="C4" class="white-key" style="left:0%"></div>
+        <div data-note="D4" class="white-key" style="left:12.5%"></div>
+        <div data-note="E4" class="white-key" style="left:25%"></div>
+        <div data-note="F4" class="white-key" style="left:37.5%"></div>
+        <div data-note="G4" class="white-key" style="left:50%"></div>
+        <div data-note="A4" class="white-key" style="left:62.5%"></div>
+        <div data-note="B4" class="white-key" style="left:75%"></div>
+        <div data-note="C5" class="white-key" style="left:87.5%"></div>
+        <!-- Black Keys -->
+        <div data-note="C#4" class="black-key" style="left:8.5%;"></div>
+        <div data-note="D#4" class="black-key" style="left:21%;"></div>
+        <div data-note="F#4" class="black-key" style="left:46%;"></div>
+        <div data-note="G#4" class="black-key" style="left:58.5%;"></div>
+        <div data-note="A#4" class="black-key" style="left:71%;"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // === Core Synthesizer Logic ===
+    
+    // Global variables
+    let audioCtx;
+    let audioBuffer = null;
+    let sampleStart = 0;
+    let sampleEnd = 1;
+    const activeNotes = new Map();
+
+    // DOM Element references
+    const audioFile = document.getElementById('audioFile');
+    const waveformCanvas = document.getElementById('waveformCanvas');
+    const ctx = waveformCanvas.getContext('2d');
+    const piano = document.getElementById('piano');
+    const keys = document.querySelectorAll('.white-key, .black-key');
+
+    // ADSR Sliders and values
+    const attackSlider = document.getElementById('attackSlider');
+    const decaySlider = document.getElementById('decaySlider');
+    const sustainSlider = document.getElementById('sustainSlider');
+    const releaseSlider = document.getElementById('releaseSlider');
+    const attackValue = document.getElementById('attackValue');
+    const decayValue = document.getElementById('decayValue');
+    const sustainValue = document.getElementById('sustainValue');
+    const releaseValue = document.getElementById('releaseValue');
+
+    // Update ADSR value displays
+    attackSlider.oninput = () => attackValue.textContent = `${parseFloat(attackSlider.value).toFixed(2)}s`;
+    decaySlider.oninput = () => decayValue.textContent = `${parseFloat(decaySlider.value).toFixed(2)}s`;
+    sustainSlider.oninput = () => sustainValue.textContent = `${parseFloat(sustainSlider.value).toFixed(2)}`;
+    releaseSlider.oninput = () => releaseValue.textContent = `${parseFloat(releaseSlider.value).toFixed(2)}s`;
+
+    // Note mapping: maps a musical note to its semitone offset from A4 (440Hz)
+    const noteFrequencies = {
+      'C4': -9, 'C#4': -8, 'D4': -7, 'D#4': -6, 'E4': -5, 'F4': -4, 'F#4': -3,
+      'G4': -2, 'G#4': -1, 'A4': 0, 'A#4': 1, 'B4': 2, 'C5': 3, 'C#5': 4
+    };
+
+    // === Waveform Drawing and Selection ===
+    const drawWaveform = () => {
+      if (!audioBuffer) return;
+      const width = waveformCanvas.width;
+      const height = waveformCanvas.height;
+      const data = audioBuffer.getChannelData(0);
+      const step = Math.ceil(data.length / width);
+      const amp = height / 2;
+
+      ctx.clearRect(0, 0, width, height);
+      ctx.fillStyle = '#1f2937'; // Background
+      ctx.fillRect(0, 0, width, height);
+      ctx.strokeStyle = '#4ade80'; // Waveform color (Tailwind green-400)
+      ctx.lineWidth = 2;
+
+      ctx.beginPath();
+      ctx.moveTo(0, amp);
+      for (let i = 0; i < width; i++) {
+        let min = 1.0;
+        let max = -1.0;
+        for (let j = 0; j < step; j++) {
+          const datum = data[(i * step) + j];
+          if (datum < min) min = datum;
+          if (datum > max) max = datum;
+        }
+        ctx.lineTo(i, (1 + min) * amp);
+      }
+      ctx.lineTo(width, amp);
+      for (let i = width - 1; i >= 0; i--) {
+        let min = 1.0;
+        let max = -1.0;
+        for (let j = 0; j < step; j++) {
+          const datum = data[(i * step) + j];
+          if (datum < min) min = datum;
+          if (datum > max) max = datum;
+        }
+        ctx.lineTo(i, (1 + max) * amp);
+      }
+      ctx.closePath();
+      ctx.stroke();
+      ctx.fillStyle = '#10B981';
+      ctx.fill();
+
+      // Draw the selection overlay
+      const startX = sampleStart * width;
+      const endX = sampleEnd * width;
+      ctx.fillStyle = 'rgba(191, 219, 254, 0.2)'; // Blue-200 with transparency
+      ctx.fillRect(startX, 0, endX - startX, height);
+      
+      // Update marker positions
+      startMarker.style.left = `${startX}px`;
+      endMarker.style.left = `${endX}px`;
+    };
+    
+    // Draggable marker logic
+    let activeMarker = null;
+    waveformCanvas.addEventListener('mousedown', (e) => {
+        const rect = waveformCanvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const width = rect.width;
+        
+        const startX = sampleStart * width;
+        const endX = sampleEnd * width;
+
+        if (Math.abs(x - startX) < 10) {
+            activeMarker = 'start';
+        } else if (Math.abs(x - endX) < 10) {
+            activeMarker = 'end';
+        } else {
+             // If not dragging a marker, start a new selection
+            activeMarker = 'new';
+            sampleStart = x / width;
+            sampleEnd = x / width;
+        }
+        e.preventDefault();
+    });
+    
+    waveformCanvas.addEventListener('mousemove', (e) => {
+      if (!activeMarker) return;
+      const rect = waveformCanvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const width = rect.width;
+      
+      let newPos = x / width;
+      if (newPos < 0) newPos = 0;
+      if (newPos > 1) newPos = 1;
+
+      if (activeMarker === 'start') {
+          if (newPos < sampleEnd) {
+              sampleStart = newPos;
+          }
+      } else if (activeMarker === 'end') {
+          if (newPos > sampleStart) {
+              sampleEnd = newPos;
+          }
+      } else if (activeMarker === 'new') {
+          if (newPos < sampleStart) {
+              sampleStart = newPos;
+          } else {
+              sampleEnd = newPos;
+          }
+      }
+      drawWaveform();
+    });
+
+    waveformCanvas.addEventListener('mouseup', () => {
+        activeMarker = null;
+    });
+
+    // Audio file upload handler
+    audioFile.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        audioCtx.decodeAudioData(event.target.result)
+          .then(buffer => {
+            audioBuffer = buffer;
+            sampleStart = 0;
+            sampleEnd = 1;
+            resizeCanvas();
+          })
+          .catch(err => {
+            console.error('Error decoding audio data:', err);
+          });
+      };
+      reader.readAsArrayBuffer(file);
+    });
+
+    // === ADSR Logic ===
+    const applyADSR = (gainNode, now) => {
+      const attack = parseFloat(attackSlider.value);
+      const decay = parseFloat(decaySlider.value);
+      const sustain = parseFloat(sustainSlider.value);
+      gainNode.gain.cancelScheduledValues(now);
+      gainNode.gain.setValueAtTime(0, now);
+      gainNode.gain.linearRampToValueAtTime(1, now + attack);
+      gainNode.gain.linearRampToValueAtTime(sustain, now + attack + decay);
+    };
+
+    const stopNote = (gainNode, now) => {
+      const release = parseFloat(releaseSlider.value);
+      gainNode.gain.cancelScheduledValues(now);
+      gainNode.gain.setValueAtTime(gainNode.gain.value, now);
+      gainNode.gain.linearRampToValueAtTime(0, now + release);
+    };
+
+    // === Piano Keyboard Logic ===
+    const playNote = (note, keyElement) => {
+      if (!audioBuffer) return;
+      
+      keyElement.classList.add('active');
+
+      const source = audioCtx.createBufferSource();
+      source.buffer = audioBuffer;
+      const gainNode = audioCtx.createGain();
+
+      source.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+      
+      const semitones = noteFrequencies[note];
+      const playbackRate = Math.pow(2, semitones / 12);
+      source.playbackRate.value = playbackRate;
+      
+      const duration = audioBuffer.duration * (sampleEnd - sampleStart);
+      source.start(0, audioBuffer.duration * sampleStart, duration);
+
+      applyADSR(gainNode, audioCtx.currentTime);
+
+      activeNotes.set(note, { source, gainNode, keyElement });
+    };
+
+    const stopNoteAndCleanup = (note, keyElement) => {
+      if (activeNotes.has(note)) {
+        const { source, gainNode } = activeNotes.get(note);
+        stopNote(gainNode, audioCtx.currentTime);
+        const releaseTime = parseFloat(releaseSlider.value);
+        source.stop(audioCtx.currentTime + releaseTime);
+        activeNotes.delete(note);
+        keyElement.classList.remove('active');
+      }
+    };
+
+    // Keyboard event listeners
+    piano.addEventListener('mousedown', (e) => {
+      const targetKey = e.target.closest('.white-key, .black-key');
+      if (targetKey && audioBuffer) {
+        const note = targetKey.dataset.note;
+        if (!activeNotes.has(note)) {
+          playNote(note, targetKey);
+        }
+      }
+    });
+
+    piano.addEventListener('mouseup', (e) => {
+      const targetKey = e.target.closest('.white-key, .black-key');
+      if (targetKey && audioBuffer) {
+        const note = targetKey.dataset.note;
+        stopNoteAndCleanup(note, targetKey);
+      }
+    });
+    
+    // Handle touch events for mobile
+    piano.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      const touch = e.touches[0];
+      const targetElement = document.elementFromPoint(touch.clientX, touch.clientY);
+      const targetKey = targetElement.closest('.white-key, .black-key');
+      if (targetKey && audioBuffer) {
+        const note = targetKey.dataset.note;
+        if (!activeNotes.has(note)) {
+          playNote(note, targetKey);
+        }
+      }
+    });
+
+    piano.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      const changedTouch = e.changedTouches[0];
+      const targetElement = document.elementFromPoint(changedTouch.clientX, changedTouch.clientY);
+      const targetKey = targetElement.closest('.white-key, .black-key');
+      if (targetKey && audioBuffer) {
+        const note = targetKey.dataset.note;
+        stopNoteAndCleanup(note, targetKey);
+      }
+    });
+
+    // === Window and Canvas resizing ===
+    const resizeCanvas = () => {
+      waveformCanvas.width = waveformCanvas.offsetWidth;
+      waveformCanvas.height = waveformCanvas.offsetHeight;
+      drawWaveform();
+    };
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+    
+    // --- Message Box UI ---
+    // A simple replacement for alert() and confirm()
+    const createMessageBox = (message, type = 'info') => {
+      const container = document.createElement('div');
+      container.className = `fixed bottom-4 right-4 p-4 rounded-lg shadow-xl text-white z-50 transition-transform transform translate-y-full opacity-0`;
+      
+      let bgColor;
+      if (type === 'error') bgColor = 'bg-red-500';
+      else if (type === 'success') bgColor = 'bg-green-500';
+      else bgColor = 'bg-blue-500';
+      
+      container.classList.add(bgColor);
+      container.textContent = message;
+      document.body.appendChild(container);
+
+      // Animate in and out
+      setTimeout(() => {
+        container.classList.remove('translate-y-full', 'opacity-0');
+        container.classList.add('translate-y-0', 'opacity-100');
+      }, 10);
+      
+      setTimeout(() => {
+        container.classList.remove('translate-y-0', 'opacity-100');
+        container.classList.add('translate-y-full', 'opacity-0');
+        setTimeout(() => container.remove(), 500);
+      }, 3000);
+    };
+
+  </script>
+</body>
+</html>
