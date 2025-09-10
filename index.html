@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Mic → Synth — Voice to Synth</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="app-header">
+    <h1>Mic → Synth</h1>
+    <p class="tagline">Live microphone pitch → synth (monophonic/polyphonic) — play melodies directly with your voice.</p>
+  </header>
+
+  <main class="container">
+    <section class="panel">
+      <div class="controls-row">
+        <button id="btnMicToggle" class="btn">🎤 Start Mic Mode</button>
+
+        <select id="presetSelect" class="btn">
+          <option value="guitar">Preset: Guitar-ish</option>
+          <option value="sax">Preset: Sax-ish</option>
+          <option value="sine">Preset: Pure Sine</option>
+        </select>
+
+        <button id="btnPanic" class="btn danger" disabled>🛑 Panic (All Notes Off)</button>
+      </div>
+
+      <div class="hint" style="margin-top:12px;">
+        Tip: Click the keyboard or sing/whistle into your mic. Use <strong>Monophonic</strong> to force one note at a time.
+      </div>
+
+      <div class="analysis-row" style="margin-top:10px;">
+        <div class="analysis-readout">
+          <div><strong>Detected:</strong> <span id="detectedNote">—</span></div>
+          <div><strong>Freq:</strong> <span id="detectedFreq">—</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <header class="panel-header">
+        <h2>Virtual Keyboard</h2>
+        <div class="kbd-controls">
+          <label class="switch">
+            <input type="checkbox" id="sustainToggle" />
+            <span class="slider"></span>
+          </label>
+          <span class="switch-label">Sustain</span>
+
+          <label class="switch" style="margin-left:10px;">
+            <input type="checkbox" id="monoToggle" checked />
+            <span class="slider"></span>
+          </label>
+          <span class="switch-label">Monophonic</span>
+        </div>
+      </header>
+
+      <div id="keyboard" class="keyboard"></div>
+
+      <div class="synth-params" style="margin-top:12px;">
+        <label>Attack
+          <input type="range" id="paramAttack" min="0" max="0.5" step="0.005" value="0.01" />
+        </label>
+        <label>Release
+          <input type="range" id="paramRelease" min="0" max="2.0" step="0.01" value="0.4" />
+        </label>
+        <label>Gain
+          <input type="range" id="paramGain" min="0" max="1" step="0.01" value="0.8" />
+        </label>
+      </div>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <small>Mic → Synth — simple pitch detection + WebAudio periodic waves.</small>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
