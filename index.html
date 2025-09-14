@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Mic → Synth — Voice to Synth (AI Model)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="styles.css" />
+  <!-- Load the ONNX Runtime for web-based AI model inference -->
+  <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
+</head>
+<body>
+  <header class="app-header">
+    <h1>Mic → Synth <span style="font-size:14px; color: var(--accent-2); vertical-align: middle; border: 1px solid var(--accent-2); padding: 2px 6px; border-radius: 6px; margin-left: 8px;">AI Powered</span></h1>
+    <p class="tagline">Live microphone pitch → synth (monophonic/polyphonic) — play melodies directly with your voice using the CREPE model.</p>
+  </header>
+
+  <main class="container">
+    <section class="panel">
+      <div class="controls-row">
+        <button id="btnMicToggle" class="btn">🎤 Start Mic Mode</button>
+        <button id="btnPanic" class="btn danger" disabled>🛑 Panic (All Notes Off)</button>
+      </div>
+
+      <div class="hint" style="margin-top:12px;">
+        Tip: Click "Start Mic Mode", allow microphone access, and then sing or whistle. The AI model will detect the pitch.
+      </div>
+
+      <div class="analysis-row" style="margin-top:10px;">
+        <div class="analysis-readout">
+          <div><strong>Detected Note:</strong> <span id="detectedNote">—</span></div>
+          <div><strong>Frequency:</strong> <span id="detectedFreq">—</span></div>
+          <div><strong>Confidence:</strong> <span id="voicingConfidence">—</span></div>
+        </div>
+      </div>
+       <div id="status" style="margin-top: 12px; color: var(--muted); font-size: 13px;">Status: Waiting to start...</div>
+    </section>
+
+    <section class="panel">
+      <header class="panel-header">
+        <h2>Virtual Keyboard</h2>
+        <div class="kbd-controls">
+          <label class="switch">
+            <input type="checkbox" id="sustainToggle" />
+            <span class="slider"></span>
+          </label>
+          <span class="switch-label">Sustain</span>
+        </div>
+      </header>
+
+      <div id="keyboard" class="keyboard"></div>
+
+      <div class="synth-params" style="margin-top:12px;">
+        <label>Attack
+          <input type="range" id="paramAttack" min="0" max="0.5" step="0.005" value="0.01" />
+        </label>
+        <label>Release
+          <input type="range" id="paramRelease" min="0" max="2.0" step="0.01" value="0.4" />
+        </label>
+        <label>Gain
+          <input type="range" id="paramGain" min="0" max="1" step="0.01" value="0.8" />
+        </label>
+      </div>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <small>Mic → Synth — AI pitch detection with the CREPE model via ONNX Runtime.</small>
+  </footer>
+
+  <!-- Main script is now a module to support AudioWorklet -->
+  <script src="script.js" type="module" defer></script>
+</body>
+</html>
